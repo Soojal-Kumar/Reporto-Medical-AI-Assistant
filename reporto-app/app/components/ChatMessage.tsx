@@ -1,7 +1,7 @@
 // app/components/ChatMessage.tsx
 import { Bot, User } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
-// CHANGE: Removed the failing import for CodeProps. We don't need it.
+import { ReactNode } from 'react'; // Import ReactNode for typing
 
 type ChatMessageProps = {
   role: 'user' | 'assistant';
@@ -49,9 +49,12 @@ export function ChatMessage({ role, content, isStreaming = false }: ChatMessageP
                     <blockquote className="border-l-4 border-orange-500 pl-4 italic text-gray-400 mb-3 text-sm" {...props} />
                   ),
 
-                  // CHANGE: Explicitly typed the props for the 'code' component right here.
-                  // This is the correct way for react-markdown v9+.
-                  code({ node: _node, inline, className, children, ...props }) {
+                  // FINAL FIX: Changed to the correct "key: value" syntax with an arrow function.
+                  code: ({ inline, className, children, ...props }: {
+                    inline?: boolean;
+                    className?: string;
+                    children: ReactNode;
+                  }) => {
                     return !inline ? (
                       <code className="block bg-gray-800 p-3 rounded-lg text-orange-300 text-xs overflow-x-auto" {...props}>
                         {children}
