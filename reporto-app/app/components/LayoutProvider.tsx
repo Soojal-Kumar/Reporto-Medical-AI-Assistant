@@ -1,191 +1,72 @@
-// app/components/AppContext.tsx
-"use client";
+// app/components/ChatMessage.tsx
+import { Bot, User } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
 
-import { createContext, useContext, useState, ReactNode, useEffect } from 'react';
-import { auth, firestore } from '@/firebase/config';
-import { User, onAuthStateChanged } from 'firebase/auth';
-import { collection, query, onSnapshot, addDoc, serverTimestamp, updateDoc, doc, arrayUnion, orderBy, deleteDoc, Timestamp } from 'firebase/firestore';
-
-// --- TYPE DEFINITIONS ---
-export type Message = { role: 'user' | 'assistant'; content: string };
-export type GlobalFile = {
-  id: string;
-  name: string;
-  createdAt: Timestamp;
-  userId: string;
-  extractedText: string;
-};
-export type Conversation = {
-  id: string;
-  title: string;
-  messages: Message[];
-  createdAt: Timestamp;
-  userId: string;
+type ChatMessageProps = {
+  role: 'user' | 'assistant';
+  content: string;
+  isStreaming?: boolean;
 };
 
-// --- CONTEXT SHAPE ---
-interface AppContextType {
-  user: User | null;
-  authLoading: boolean;
-  conversations: Conversation[];
-  files: GlobalFile[];
-  activeSessionId: string | null;
-  setActiveSessionId: React.Dispatch<React.SetStateAction<string | null>>;
-  createNewConversation: () => Promise<string>;
-  addMessageToConversation: (sessionId: string, message: Message) => Promise<void>;
-  addFileToGlobalPool: (fileInfo: Omit<GlobalFile, 'id' | 'createdAt' | 'userId'>) => Promise<void>;
-  updateConversationTitle: (sessionId: string, title: string) => Promise<void>;
-  deleteConversation: (sessionId: string) => Promise<void>;
-  deleteFile: (fileId: string) => Promise<void>;
+export function ChatMessage({ role, content, isStreaming = false }: ChatMessageProps) {
+  const isUser = role === 'user';
+
+  return (
+    <div className={`w-full py-6 px-4 md:px-6 border-b border-gray-800/30 ${
+      isUser ? 'bg-transparent' : 'bg-gray-900/20'
+    }`}>
+      <div className={`max-w-4xl mx-auto flex items-start gap-4 ${isUser ? 'flex-row-reverse justify-end' : ''}`}>
+        <div className={`w-8 h-8 flex-shrink-0 flex items-center justify-center rounded-full ${
+          isUser ? 'bg-orange-500' : 'bg-gray-700'
+        }`}>
+          {isUser ? (
+            <User size={18} className="text-white" />
+          ) : (
+            <Bot size={18} className="text-gray-300" />
+          )}
+        </div>
+        
+        {isUser ? (
+          <div className="flex-1">
+            <p className="text-white text-base leading-relaxed">{content}</p>
+          </div>
+        ) : (
+          <div className="flex-1">
+            <div className="prose prose-invert max-w-none text-gray-100 text-sm">
+              <ReactMarkdown
+                components={{
+                  h1: (props) => <h1 className="text-lg font-bold mb-3 text-white" {...props} />,
+                  h2: (props) => <h2 className="text-base font-semibold mb-2 text-white" {...props} />,
+                  h3: (props) => <h3 className="text-sm font-semibold mb-2 text-white" {...props} />,
+                  strong: (props) => <strong className="font-semibold text-orange-400" {...props} />,
+                  ul: (props) => <ul className="list-disc list-inside mb-3 space-y-0.5 ml-2" {...props} />,
+                  ol: (props) => <ol className="list-decimal list-inside mb-3 space-y-0.5 ml-2" {...props} />,
+                  li: (props) => <li className="mb-0.5 text-gray-300 text-sm" {...props} />,
+                  p: (props) => <p className="mb-2 text-gray-300 leading-relaxed text-sm" {...props} />,
+                  blockquote: (props) => (
+                    <blockquote className="border-l-4 border-orange-500 pl-4 italic text-gray-400 mb-3 text-sm" {...props} />
+                  ),
+                  code: ({ children, ...props }) => (
+                    <code className="bg-gray-800 px-1.5 py-0.5 rounded text-orange-300 text-xs" {...props}>
+                      {children}
+                    </code>
+                  ),
+                  pre: ({ children, ...props }) => (
+                    <pre className="block bg-gray-800 p-3 rounded-lg text-orange-300 text-xs overflow-x-auto mb-3" {...props}>
+                      {children}
+                    </pre>
+                  )
+                }}
+              >
+                {content}
+              </ReactMarkdown>
+              {isStreaming && (
+                <span className="inline-block w-2 h-4 bg-orange-400 animate-pulse ml-1" />
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
 }
-
-const AppContext = createContext<AppContextType | undefined>(undefined);
-
-// --- PROVIDER COMPONENT ---
-export const AppProvider = ({ children }: { children: ReactNode }) => {
-  const [user, setUser] = useState<User | null>(null);
-  const [authLoading, setAuthLoading] = useState(true);
-  const [conversations, setConversations] = useState<Conversation[]>([]);
-  const [files, setFiles] = useState<GlobalFile[]>([]);
-  const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
-
-  useEffect(() => {
-    console.log('AppContext: Setting up auth listener');
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      console.log('AppContext: Auth state changed', {
-        user: currentUser ? { uid: currentUser.uid, email: currentUser.email } : null,
-        timestamp: new Date().toISOString()
-      });
-      
-      setUser(currentUser);
-      setAuthLoading(false);
-      
-      if (!currentUser) { 
-        console.log('AppContext: No user, clearing data');
-        setConversations([]); 
-        setFiles([]); 
-        setActiveSessionId(null); 
-      }
-    });
-
-    return () => {
-      console.log('AppContext: Cleaning up auth listener');
-      unsubscribe();
-    };
-  }, []);
-
-  // Listener for conversations
-  useEffect(() => {
-    if (!user) { 
-      console.log('AppContext: No user, clearing conversations');
-      setConversations([]); 
-      return; 
-    }
-    
-    console.log('AppContext: Setting up conversations listener for user:', user.uid);
-    const q = query(collection(firestore, 'users', user.uid, 'conversations'), orderBy('createdAt', 'desc'));
-    const unsubscribe = onSnapshot(q, (querySnapshot) => {
-      const convos = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Conversation));
-      console.log('AppContext: Conversations updated:', convos.length);
-      setConversations(convos);
-    }, (error) => {
-      console.error('AppContext: Error listening to conversations:', error);
-    });
-    
-    return () => {
-      console.log('AppContext: Cleaning up conversations listener');
-      unsubscribe();
-    };
-  }, [user]);
-
-  // Listener for global files
-  useEffect(() => {
-    if (!user) { 
-      console.log('AppContext: No user, clearing files');
-      setFiles([]); 
-      return; 
-    }
-    
-    console.log('AppContext: Setting up files listener for user:', user.uid);
-    const q = query(collection(firestore, 'users', user.uid, 'files'), orderBy('createdAt', 'desc'));
-    const unsubscribe = onSnapshot(q, (querySnapshot) => {
-      const userFiles = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as GlobalFile));
-      console.log('AppContext: Files updated:', userFiles.length);
-      setFiles(userFiles);
-    }, (error) => {
-      console.error('AppContext: Error listening to files:', error);
-    });
-    
-    return () => {
-      console.log('AppContext: Cleaning up files listener');
-      unsubscribe();
-    };
-  }, [user]);
-
-  const createNewConversation = async (): Promise<string> => {
-    if (!user) throw new Error("User not authenticated");
-    console.log('AppContext: Creating new conversation');
-    const docRef = await addDoc(collection(firestore, 'users', user.uid, 'conversations'), {
-      title: "New Chat",
-      messages: [],
-      createdAt: serverTimestamp(),
-      userId: user.uid,
-    });
-    setActiveSessionId(docRef.id);
-    console.log('AppContext: New conversation created:', docRef.id);
-    return docRef.id;
-  };
-
-  const addMessageToConversation = async (sessionId: string, message: Message) => {
-    if (!user) throw new Error("User not authenticated");
-    const convoRef = doc(firestore, 'users', user.uid, 'conversations', sessionId);
-    await updateDoc(convoRef, { messages: arrayUnion(message) });
-  };
-
-  const addFileToGlobalPool = async (fileInfo: Omit<GlobalFile, 'id' | 'createdAt' | 'userId'>) => {
-    if (!user) throw new Error("User not authenticated");
-    await addDoc(collection(firestore, 'users', user.uid, 'files'), {
-      ...fileInfo,
-      createdAt: serverTimestamp(),
-      userId: user.uid,
-    });
-  };
-  
-  const updateConversationTitle = async (sessionId: string, title: string) => {
-    if (!user) throw new Error("User not authenticated");
-    const convoRef = doc(firestore, 'users', user.uid, 'conversations', sessionId);
-    await updateDoc(convoRef, { title: title });
-  };
-  
-  const deleteConversation = async (sessionId: string) => {
-    if (!user) throw new Error("User not authenticated");
-    const convoRef = doc(firestore, 'users', user.uid, 'conversations', sessionId);
-    await deleteDoc(convoRef);
-    
-    // If we're deleting the active conversation, clear the active session
-    if (activeSessionId === sessionId) {
-      setActiveSessionId(null);
-    }
-  };
-
-  const deleteFile = async (fileId: string) => {
-    if (!user) throw new Error("User not authenticated");
-    const fileRef = doc(firestore, 'users', user.uid, 'files', fileId);
-    await deleteDoc(fileRef);
-  };
-
-  const value = {
-    user, authLoading, conversations, files, activeSessionId, setActiveSessionId,
-    createNewConversation, addMessageToConversation, addFileToGlobalPool, 
-    deleteConversation, updateConversationTitle, deleteFile
-  };
-
-  return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
-};
-
-// --- CUSTOM HOOK ---
-export const useAppContext = () => {
-  const context = useContext(AppContext);
-  if (context === undefined) { throw new Error('useAppContext must be used within an AppProvider'); }
-  return context;
-};
