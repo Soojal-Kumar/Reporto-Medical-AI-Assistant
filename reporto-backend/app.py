@@ -172,3 +172,9 @@ Use the document context as your primary source but supplement with general medi
             "Content-Type": "text/stream"
         }
     )
+import uvicorn
+
+# This block will only run when the script is executed directly
+if __name__ == "__main__":
+    # Hugging Face Spaces expects the app to run on port 7860
+    uvicorn.run(app, host="0.0.0.0", port=7860)
