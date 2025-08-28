@@ -1,72 +1,77 @@
-// app/components/ChatMessage.tsx
-import { Bot, User } from 'lucide-react';
-import ReactMarkdown from 'react-markdown';
+// app/components/LayoutProvider.tsx
+"use client";
 
-type ChatMessageProps = {
-  role: 'user' | 'assistant';
-  content: string;
-  isStreaming?: boolean;
-};
+import { useState, useEffect } from "react";
+import { Sidebar } from "./Sidebar";
+import { PanelRightOpen } from "lucide-react";
+import { useAppContext } from "./AppContext";
+import { useRouter, usePathname } from "next/navigation";
 
-export function ChatMessage({ role, content, isStreaming = false }: ChatMessageProps) {
-  const isUser = role === 'user';
+export default function LayoutProvider({ children }: { children: React.ReactNode }) {
+  const { user, authLoading } = useAppContext();
+  const router = useRouter();
+  const pathname = usePathname();
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
-  return (
-    <div className={`w-full py-6 px-4 md:px-6 border-b border-gray-800/30 ${
-      isUser ? 'bg-transparent' : 'bg-gray-900/20'
-    }`}>
-      <div className={`max-w-4xl mx-auto flex items-start gap-4 ${isUser ? 'flex-row-reverse justify-end' : ''}`}>
-        <div className={`w-8 h-8 flex-shrink-0 flex items-center justify-center rounded-full ${
-          isUser ? 'bg-orange-500' : 'bg-gray-700'
-        }`}>
-          {isUser ? (
-            <User size={18} className="text-white" />
-          ) : (
-            <Bot size={18} className="text-gray-300" />
-          )}
+  useEffect(() => {
+    // Only redirect if not loading
+    if (authLoading) return;
+
+    if (!user && pathname !== '/login') {
+      router.push('/login');
+    } else if (user && pathname === '/login') {
+      router.push('/');
+    }
+  }, [user, authLoading, pathname, router]);
+
+  if (authLoading) {
+    return (
+      <div className="flex items-center justify-center h-screen bg-[#202123] text-white">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white mx-auto mb-4"></div>
+          <p>Authenticating...</p>
         </div>
-        
-        {isUser ? (
-          <div className="flex-1">
-            <p className="text-white text-base leading-relaxed">{content}</p>
-          </div>
-        ) : (
-          <div className="flex-1">
-            <div className="prose prose-invert max-w-none text-gray-100 text-sm">
-              <ReactMarkdown
-                components={{
-                  h1: (props) => <h1 className="text-lg font-bold mb-3 text-white" {...props} />,
-                  h2: (props) => <h2 className="text-base font-semibold mb-2 text-white" {...props} />,
-                  h3: (props) => <h3 className="text-sm font-semibold mb-2 text-white" {...props} />,
-                  strong: (props) => <strong className="font-semibold text-orange-400" {...props} />,
-                  ul: (props) => <ul className="list-disc list-inside mb-3 space-y-0.5 ml-2" {...props} />,
-                  ol: (props) => <ol className="list-decimal list-inside mb-3 space-y-0.5 ml-2" {...props} />,
-                  li: (props) => <li className="mb-0.5 text-gray-300 text-sm" {...props} />,
-                  p: (props) => <p className="mb-2 text-gray-300 leading-relaxed text-sm" {...props} />,
-                  blockquote: (props) => (
-                    <blockquote className="border-l-4 border-orange-500 pl-4 italic text-gray-400 mb-3 text-sm" {...props} />
-                  ),
-                  code: ({ children, ...props }) => (
-                    <code className="bg-gray-800 px-1.5 py-0.5 rounded text-orange-300 text-xs" {...props}>
-                      {children}
-                    </code>
-                  ),
-                  pre: ({ children, ...props }) => (
-                    <pre className="block bg-gray-800 p-3 rounded-lg text-orange-300 text-xs overflow-x-auto mb-3" {...props}>
-                      {children}
-                    </pre>
-                  )
-                }}
-              >
-                {content}
-              </ReactMarkdown>
-              {isStreaming && (
-                <span className="inline-block w-2 h-4 bg-orange-400 animate-pulse ml-1" />
-              )}
-            </div>
-          </div>
-        )}
       </div>
+    );
+  }
+  
+  // Show login page or unauthenticated content
+  if (!user || pathname === '/login') {
+    return <div className="bg-[#202123] min-h-screen">{children}</div>;
+  }
+
+  // Main authenticated app layout
+  return (
+    <div className="flex h-screen bg-[#202123]">
+      <aside 
+        className={`bg-[#202123] text-white transition-all duration-300 border-r border-gray-700/50 ${
+          isSidebarOpen ? 'w-72' : 'w-0'
+        }`}
+      >
+        <div className={`h-full overflow-hidden transition-all duration-300 ${
+          isSidebarOpen ? 'p-2' : 'p-0'
+        }`}>
+          <Sidebar
+            isOpen={isSidebarOpen}
+            toggleSidebar={() => setIsSidebarOpen(false)}
+          />
+        </div>
+      </aside>
+      
+      <main className="flex-1 overflow-hidden relative bg-black">
+        {!isSidebarOpen && (
+          <button 
+            onClick={() => setIsSidebarOpen(true)} 
+            className="absolute top-4 left-4 z-10 p-2 rounded-md bg-[#202123] hover:bg-[#2a2b32] transition-colors border border-gray-700/50"
+            aria-label="Open sidebar"
+          >
+            <PanelRightOpen size={20} className="text-white" />
+          </button>
+        )}
+        <div className="h-full overflow-y-auto">
+          {children}
+        </div>
+      </main>
     </div>
   );
 }
