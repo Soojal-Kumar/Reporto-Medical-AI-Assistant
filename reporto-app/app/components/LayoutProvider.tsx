@@ -1,7 +1,7 @@
 // app/components/LayoutProvider.tsx
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react"; // Import useRef
 import { Sidebar } from "./Sidebar";
 import { PanelRightOpen } from "lucide-react";
 import { useAppContext } from "./AppContext";
@@ -12,17 +12,26 @@ export default function LayoutProvider({ children }: { children: React.ReactNode
   const router = useRouter();
   const pathname = usePathname();
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const hasRedirected = useRef(false); // The guard flag
 
   useEffect(() => {
-    // Only redirect if not loading
-    if (authLoading) return;
+    // Prevent multiple redirects by checking the flag
+    if (authLoading || hasRedirected.current) return;
 
     if (!user && pathname !== '/login') {
+      hasRedirected.current = true; // Set flag before redirecting
       router.push('/login');
     } else if (user && pathname === '/login') {
+      hasRedirected.current = true; // Set flag before redirecting
       router.push('/');
     }
   }, [user, authLoading, pathname, router]);
+
+  // Reset the redirect flag whenever the user's auth state changes.
+  // This allows for a new redirect if they log out and then log back in.
+  useEffect(() => {
+    hasRedirected.current = false;
+  }, [user]);
 
   if (authLoading) {
     return (
