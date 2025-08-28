@@ -36,35 +36,27 @@ export function ChatMessage({ role, content, isStreaming = false }: ChatMessageP
             <div className="prose prose-invert max-w-none text-gray-100 text-sm">
               <ReactMarkdown
                 components={{
-                  // These components are fine
-                  h1: ({node: _node, ...props}) => <h1 className="text-lg font-bold mb-3 text-white" {...props} />,
-                  h2: ({node: _node, ...props}) => <h2 className="text-base font-semibold mb-2 text-white" {...props} />,
-                  h3: ({node: _node, ...props}) => <h3 className="text-sm font-semibold mb-2 text-white" {...props} />,
-                  strong: ({node: _node, ...props}) => <strong className="font-semibold text-orange-400" {...props} />,
-                  ul: ({node: _node, ...props}) => <ul className="list-disc list-inside mb-3 space-y-0.5 ml-2" {...props} />,
-                  ol: ({node: _node, ...props}) => <ol className="list-decimal list-inside mb-3 space-y-0.5 ml-2" {...props} />,
-                  li: ({node: _node, ...props}) => <li className="mb-0.5 text-gray-300 text-sm" {...props} />,
-                  p: ({node: _node, ...props}) => <p className="mb-2 text-gray-300 leading-relaxed text-sm" {...props} />,
-                  blockquote: ({node: _node, ...props}) => (
+                  h1: (props) => <h1 className="text-lg font-bold mb-3 text-white" {...props} />,
+                  h2: (props) => <h2 className="text-base font-semibold mb-2 text-white" {...props} />,
+                  h3: (props) => <h3 className="text-sm font-semibold mb-2 text-white" {...props} />,
+                  strong: (props) => <strong className="font-semibold text-orange-400" {...props} />,
+                  ul: (props) => <ul className="list-disc list-inside mb-3 space-y-0.5 ml-2" {...props} />,
+                  ol: (props) => <ol className="list-decimal list-inside mb-3 space-y-0.5 ml-2" {...props} />,
+                  li: (props) => <li className="mb-0.5 text-gray-300 text-sm" {...props} />,
+                  p: (props) => <p className="mb-2 text-gray-300 leading-relaxed text-sm" {...props} />,
+                  blockquote: (props) => (
                     <blockquote className="border-l-4 border-orange-500 pl-4 italic text-gray-400 mb-3 text-sm" {...props} />
                   ),
-
-                  // FINAL FIX: Changed to the correct "key: value" syntax with an arrow function.
-                  code: ({ inline, className, children, ...props }: {
-                    inline?: boolean;
-                    className?: string;
-                    children: ReactNode;
-                  }) => {
-                    return !inline ? (
-                      <code className="block bg-gray-800 p-3 rounded-lg text-orange-300 text-xs overflow-x-auto" {...props}>
-                        {children}
-                      </code>
-                    ) : (
-                      <code className="bg-gray-800 px-1.5 py-0.5 rounded text-orange-300 text-xs" {...props}>
-                        {children}
-                      </code>
-                    );
-                  }
+                  code: ({ children, ...props }) => (
+                    <code className="bg-gray-800 px-1.5 py-0.5 rounded text-orange-300 text-xs" {...props}>
+                      {children}
+                    </code>
+                  ),
+                  pre: ({ children, ...props }) => (
+                    <pre className="block bg-gray-800 p-3 rounded-lg text-orange-300 text-xs overflow-x-auto mb-3" {...props}>
+                      {children}
+                    </pre>
+                  )
                 }}
               >
                 {content}
