@@ -1,77 +1,191 @@
-// app/components/LayoutProvider.tsx
+// app/components/AppContext.tsx
 "use client";
 
-import { useState, useEffect } from "react";
-import { Sidebar } from "./Sidebar";
-import { PanelRightOpen } from "lucide-react";
-import { useAppContext } from "./AppContext";
-import { useRouter, usePathname } from "next/navigation";
+import { createContext, useContext, useState, ReactNode, useEffect } from 'react';
+import { auth, firestore } from '@/firebase/config';
+import { User, onAuthStateChanged } from 'firebase/auth';
+import { collection, query, onSnapshot, addDoc, serverTimestamp, updateDoc, doc, arrayUnion, orderBy, deleteDoc, Timestamp } from 'firebase/firestore';
 
-export default function LayoutProvider({ children }: { children: React.ReactNode }) {
-  const { user, authLoading } = useAppContext();
-  const router = useRouter();
-  const pathname = usePathname();
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+// --- TYPE DEFINITIONS ---
+export type Message = { role: 'user' | 'assistant'; content: string };
+export type GlobalFile = {
+  id: string;
+  name: string;
+  createdAt: Timestamp;
+  userId: string;
+  extractedText: string;
+};
+export type Conversation = {
+  id: string;
+  title: string;
+  messages: Message[];
+  createdAt: Timestamp;
+  userId: string;
+};
+
+// --- CONTEXT SHAPE ---
+interface AppContextType {
+  user: User | null;
+  authLoading: boolean;
+  conversations: Conversation[];
+  files: GlobalFile[];
+  activeSessionId: string | null;
+  setActiveSessionId: React.Dispatch<React.SetStateAction<string | null>>;
+  createNewConversation: () => Promise<string>;
+  addMessageToConversation: (sessionId: string, message: Message) => Promise<void>;
+  addFileToGlobalPool: (fileInfo: Omit<GlobalFile, 'id' | 'createdAt' | 'userId'>) => Promise<void>;
+  updateConversationTitle: (sessionId: string, title: string) => Promise<void>;
+  deleteConversation: (sessionId: string) => Promise<void>;
+  deleteFile: (fileId: string) => Promise<void>;
+}
+
+const AppContext = createContext<AppContextType | undefined>(undefined);
+
+// --- PROVIDER COMPONENT ---
+export const AppProvider = ({ children }: { children: ReactNode }) => {
+  const [user, setUser] = useState<User | null>(null);
+  const [authLoading, setAuthLoading] = useState(true);
+  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [files, setFiles] = useState<GlobalFile[]>([]);
+  const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
 
   useEffect(() => {
-    // Only redirect if not loading
-    if (authLoading) return;
-
-    if (!user && pathname !== '/login') {
-      router.push('/login');
-    } else if (user && pathname === '/login') {
-      router.push('/');
-    }
-  }, [user, authLoading, pathname, router]);
-
-  if (authLoading) {
-    return (
-      <div className="flex items-center justify-center h-screen bg-[#202123] text-white">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white mx-auto mb-4"></div>
-          <p>Authenticating...</p>
-        </div>
-      </div>
-    );
-  }
-  
-  // Show login page or unauthenticated content
-  if (!user || pathname === '/login') {
-    return <div className="bg-[#202123] min-h-screen">{children}</div>;
-  }
-
-  // Main authenticated app layout
-  return (
-    <div className="flex h-screen bg-[#202123]">
-      <aside 
-        className={`bg-[#202123] text-white transition-all duration-300 border-r border-gray-700/50 ${
-          isSidebarOpen ? 'w-72' : 'w-0'
-        }`}
-      >
-        <div className={`h-full overflow-hidden transition-all duration-300 ${
-          isSidebarOpen ? 'p-2' : 'p-0'
-        }`}>
-          <Sidebar
-            isOpen={isSidebarOpen}
-            toggleSidebar={() => setIsSidebarOpen(false)}
-          />
-        </div>
-      </aside>
+    console.log('AppContext: Setting up auth listener');
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      console.log('AppContext: Auth state changed', {
+        user: currentUser ? { uid: currentUser.uid, email: currentUser.email } : null,
+        timestamp: new Date().toISOString()
+      });
       
-      <main className="flex-1 overflow-hidden relative bg-black">
-        {!isSidebarOpen && (
-          <button 
-            onClick={() => setIsSidebarOpen(true)} 
-            className="absolute top-4 left-4 z-10 p-2 rounded-md bg-[#202123] hover:bg-[#2a2b32] transition-colors border border-gray-700/50"
-            aria-label="Open sidebar"
-          >
-            <PanelRightOpen size={20} className="text-white" />
-          </button>
-        )}
-        <div className="h-full overflow-y-auto">
-          {children}
-        </div>
-      </main>
-    </div>
-  );
-}
+      setUser(currentUser);
+      setAuthLoading(false);
+      
+      if (!currentUser) { 
+        console.log('AppContext: No user, clearing data');
+        setConversations([]); 
+        setFiles([]); 
+        setActiveSessionId(null); 
+      }
+    });
+
+    return () => {
+      console.log('AppContext: Cleaning up auth listener');
+      unsubscribe();
+    };
+  }, []);
+
+  // Listener for conversations
+  useEffect(() => {
+    if (!user) { 
+      console.log('AppContext: No user, clearing conversations');
+      setConversations([]); 
+      return; 
+    }
+    
+    console.log('AppContext: Setting up conversations listener for user:', user.uid);
+    const q = query(collection(firestore, 'users', user.uid, 'conversations'), orderBy('createdAt', 'desc'));
+    const unsubscribe = onSnapshot(q, (querySnapshot) => {
+      const convos = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Conversation));
+      console.log('AppContext: Conversations updated:', convos.length);
+      setConversations(convos);
+    }, (error) => {
+      console.error('AppContext: Error listening to conversations:', error);
+    });
+    
+    return () => {
+      console.log('AppContext: Cleaning up conversations listener');
+      unsubscribe();
+    };
+  }, [user]);
+
+  // Listener for global files
+  useEffect(() => {
+    if (!user) { 
+      console.log('AppContext: No user, clearing files');
+      setFiles([]); 
+      return; 
+    }
+    
+    console.log('AppContext: Setting up files listener for user:', user.uid);
+    const q = query(collection(firestore, 'users', user.uid, 'files'), orderBy('createdAt', 'desc'));
+    const unsubscribe = onSnapshot(q, (querySnapshot) => {
+      const userFiles = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as GlobalFile));
+      console.log('AppContext: Files updated:', userFiles.length);
+      setFiles(userFiles);
+    }, (error) => {
+      console.error('AppContext: Error listening to files:', error);
+    });
+    
+    return () => {
+      console.log('AppContext: Cleaning up files listener');
+      unsubscribe();
+    };
+  }, [user]);
+
+  const createNewConversation = async (): Promise<string> => {
+    if (!user) throw new Error("User not authenticated");
+    console.log('AppContext: Creating new conversation');
+    const docRef = await addDoc(collection(firestore, 'users', user.uid, 'conversations'), {
+      title: "New Chat",
+      messages: [],
+      createdAt: serverTimestamp(),
+      userId: user.uid,
+    });
+    setActiveSessionId(docRef.id);
+    console.log('AppContext: New conversation created:', docRef.id);
+    return docRef.id;
+  };
+
+  const addMessageToConversation = async (sessionId: string, message: Message) => {
+    if (!user) throw new Error("User not authenticated");
+    const convoRef = doc(firestore, 'users', user.uid, 'conversations', sessionId);
+    await updateDoc(convoRef, { messages: arrayUnion(message) });
+  };
+
+  const addFileToGlobalPool = async (fileInfo: Omit<GlobalFile, 'id' | 'createdAt' | 'userId'>) => {
+    if (!user) throw new Error("User not authenticated");
+    await addDoc(collection(firestore, 'users', user.uid, 'files'), {
+      ...fileInfo,
+      createdAt: serverTimestamp(),
+      userId: user.uid,
+    });
+  };
+  
+  const updateConversationTitle = async (sessionId: string, title: string) => {
+    if (!user) throw new Error("User not authenticated");
+    const convoRef = doc(firestore, 'users', user.uid, 'conversations', sessionId);
+    await updateDoc(convoRef, { title: title });
+  };
+  
+  const deleteConversation = async (sessionId: string) => {
+    if (!user) throw new Error("User not authenticated");
+    const convoRef = doc(firestore, 'users', user.uid, 'conversations', sessionId);
+    await deleteDoc(convoRef);
+    
+    // If we're deleting the active conversation, clear the active session
+    if (activeSessionId === sessionId) {
+      setActiveSessionId(null);
+    }
+  };
+
+  const deleteFile = async (fileId: string) => {
+    if (!user) throw new Error("User not authenticated");
+    const fileRef = doc(firestore, 'users', user.uid, 'files', fileId);
+    await deleteDoc(fileRef);
+  };
+
+  const value = {
+    user, authLoading, conversations, files, activeSessionId, setActiveSessionId,
+    createNewConversation, addMessageToConversation, addFileToGlobalPool, 
+    deleteConversation, updateConversationTitle, deleteFile
+  };
+
+  return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
+};
+
+// --- CUSTOM HOOK ---
+export const useAppContext = () => {
+  const context = useContext(AppContext);
+  if (context === undefined) { throw new Error('useAppContext must be used within an AppProvider'); }
+  return context;
+};
