@@ -1,7 +1,8 @@
 # Reporto - AI Medical Report Analyzer
 
 <div align="center">
-  <img src="YOUR_SCREENSHOT_URL_HERE" alt="Reporto Application Screenshot" width="800"/>
+  <img src="https://github.com/user-attachments/assets/95659043-0af0-415b-b977-732047f3fe92" alt="Reporto Application Screenshot" width="800"/>
+
 </div>
 
 <p align="center">
