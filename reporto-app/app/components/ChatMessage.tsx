@@ -38,18 +38,18 @@ export function ChatMessage({ role, content, isStreaming = false }: ChatMessageP
               <ReactMarkdown
                 components={{
                   // Better styling for markdown elements with smaller font sizes
-                  h1: ({node, ...props}) => <h1 className="text-lg font-bold mb-3 text-white" {...props} />,
-                  h2: ({node, ...props}) => <h2 className="text-base font-semibold mb-2 text-white" {...props} />,
-                  h3: ({node, ...props}) => <h3 className="text-sm font-semibold mb-2 text-white" {...props} />,
-                  strong: ({node, ...props}) => <strong className="font-semibold text-orange-400" {...props} />,
-                  ul: ({node, ...props}) => <ul className="list-disc list-inside mb-3 space-y-0.5 ml-2" {...props} />,
-                  ol: ({node, ...props}) => <ol className="list-decimal list-inside mb-3 space-y-0.5 ml-2" {...props} />,
-                  li: ({node, ...props}) => <li className="mb-0.5 text-gray-300 text-sm" {...props} />,
-                  p: ({node, ...props}) => <p className="mb-2 text-gray-300 leading-relaxed text-sm" {...props} />,
-                  blockquote: ({node, ...props}) => (
+                  h1: ({node: _node, ...props}) => <h1 className="text-lg font-bold mb-3 text-white" {...props} />,
+                  h2: ({node: _node, ...props}) => <h2 className="text-base font-semibold mb-2 text-white" {...props} />,
+                  h3: ({node: _node, ...props}) => <h3 className="text-sm font-semibold mb-2 text-white" {...props} />,
+                  strong: ({node: _node, ...props}) => <strong className="font-semibold text-orange-400" {...props} />,
+                  ul: ({node: _node, ...props}) => <ul className="list-disc list-inside mb-3 space-y-0.5 ml-2" {...props} />,
+                  ol: ({node: _node, ...props}) => <ol className="list-decimal list-inside mb-3 space-y-0.5 ml-2" {...props} />,
+                  li: ({node: _node, ...props}) => <li className="mb-0.5 text-gray-300 text-sm" {...props} />,
+                  p: ({node: _node, ...props}) => <p className="mb-2 text-gray-300 leading-relaxed text-sm" {...props} />,
+                  blockquote: ({node: _node, ...props}) => (
                     <blockquote className="border-l-4 border-orange-500 pl-4 italic text-gray-400 mb-3 text-sm" {...props} />
                   ),
-                  code: ({node, inline, ...props}) => 
+                  code: ({node: _node, inline, ...props}) => 
                     inline ? (
                       <code className="bg-gray-800 px-1.5 py-0.5 rounded text-orange-300 text-xs" {...props} />
                     ) : (

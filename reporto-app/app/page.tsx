@@ -6,14 +6,15 @@ import { Plus, Mic, Send, Square } from 'lucide-react';
 import { ChatMessage } from './components/ChatMessage';
 import { useAppContext } from './components/AppContext';
 
-const API_BASE_URL = 'http://localhost:8000';
+// Use the environment variable for the API URL
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 
 export default function HomePage() {
   const {
     conversations,
     files,
     activeSessionId,
-    setActiveSessionId,
+    // setActiveSessionId was removed as it was unused
     addMessageToConversation,
     addFileToGlobalPool,
     createNewConversation,
@@ -186,8 +187,8 @@ export default function HomePage() {
         }
       }
       
-    } catch (error: any) {
-      if (error.name !== 'AbortError') {
+    } catch (error) { // Changed 'error: any' to 'error'
+      if (error instanceof Error && error.name !== 'AbortError') {
         console.error("Chat error:", error);
       }
     } finally { 
@@ -215,7 +216,7 @@ export default function HomePage() {
     return (
       <div className="flex-1 flex flex-col items-center justify-center text-center h-full p-4">
         <h1 className="text-4xl font-semibold">Welcome to Reporto</h1>
-        <p className="text-gray-400 mt-2">Click "New Chat" or upload a file to get started.</p>
+        <p className="text-gray-400 mt-2">Click &quot;New Chat&quot; or upload a file to get started.</p>
         {isUploading && <p className="text-blue-400 mt-4">Uploading file...</p>}
       </div>
     );

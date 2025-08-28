@@ -4,14 +4,14 @@
 import { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import { auth, firestore } from '@/firebase/config';
 import { User, onAuthStateChanged } from 'firebase/auth';
-import { collection, query, onSnapshot, addDoc, serverTimestamp, updateDoc, doc, arrayUnion, orderBy, deleteDoc } from 'firebase/firestore';
+import { collection, query, onSnapshot, addDoc, serverTimestamp, updateDoc, doc, arrayUnion, orderBy, deleteDoc, Timestamp } from 'firebase/firestore';
 
 // --- TYPE DEFINITIONS ---
 export type Message = { role: 'user' | 'assistant'; content: string };
 export type GlobalFile = {
   id: string;
   name: string;
-  createdAt: any;
+  createdAt: Timestamp;
   userId: string;
   extractedText: string;
 };
@@ -19,7 +19,7 @@ export type Conversation = {
   id: string;
   title: string;
   messages: Message[];
-  createdAt: any;
+  createdAt: Timestamp;
   userId: string;
 };
 
@@ -36,7 +36,7 @@ interface AppContextType {
   addFileToGlobalPool: (fileInfo: Omit<GlobalFile, 'id' | 'createdAt' | 'userId'>) => Promise<void>;
   updateConversationTitle: (sessionId: string, title: string) => Promise<void>;
   deleteConversation: (sessionId: string) => Promise<void>;
-  deleteFile: (fileId: string) => Promise<void>;  // Add delete file function
+  deleteFile: (fileId: string) => Promise<void>;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);

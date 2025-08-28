@@ -2,7 +2,7 @@
 "use client";
 
 import { useEffect } from 'react';
-import { Plus, FileText, Settings, MessageSquare, PanelLeftClose, Trash2, LogOut, Search, Repeat2Icon } from 'lucide-react';
+import { Plus, FileText, MessageSquare, PanelLeftClose, Trash2, LogOut, Search, Repeat2Icon } from 'lucide-react';
 import { useAppContext } from './AppContext';
 import { signOut } from "firebase/auth";
 import { auth } from '@/firebase/config';
@@ -21,10 +21,10 @@ export function Sidebar({ isOpen, toggleSidebar }: SidebarProps) {
     setActiveSessionId, 
     createNewConversation, 
     deleteConversation,
-    deleteFile  // Add deleteFile from context
+    deleteFile
   } = useAppContext();
   
-  const activeConversation = conversations.find(c => c.id === activeSessionId) || null;
+  // const activeConversation = conversations.find(c => c.id === activeSessionId) || null; // This variable was unused
 
   useEffect(() => {
     if (!activeSessionId && conversations.length > 0) {
