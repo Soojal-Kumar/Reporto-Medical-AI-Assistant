@@ -1,7 +1,7 @@
 # Reporto - AI Medical Report Analyzer
 
 <div align="center">
-  <img src="https://user-images.githubusercontent.com/10557452/232264582-723f127c-6b19-478a-9280-5a3a78832c4e.png" alt="Reporto Application Screenshot" width="800"/>
+<img width="1913" height="913" alt="image" src="https://github.com/user-attachments/assets/a0896b00-9555-4451-8fae-016d507b8ed9" />
 </div>
 
 <p align="center">
