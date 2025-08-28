@@ -1,0 +1,104 @@
+@import "tailwindcss";
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0a0a0a;
+    --foreground: #ededed;
+  }
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+/* Fix for group hover functionality */
+.group:hover .group-hover\:opacity-100 {
+  opacity: 1 !important;
+}
+
+.group .group-hover\:opacity-100 {
+  transition: opacity 0.2s ease-in-out;
+}
+
+/* Force dark scrollbar globally - more aggressive approach */
+html {
+  scrollbar-width: thin;
+  scrollbar-color: #4b5563 #111827;
+}
+
+html::-webkit-scrollbar {
+  width: 6px !important;
+}
+
+html::-webkit-scrollbar-track {
+  background: #111827 !important;
+}
+
+html::-webkit-scrollbar-thumb {
+  background: #4b5563 !important;
+  border-radius: 3px !important;
+}
+
+html::-webkit-scrollbar-thumb:hover {
+  background: #6b7280 !important;
+}
+
+/* Apply to all elements */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #4b5563 #111827;
+}
+
+*::-webkit-scrollbar {
+  width: 6px !important;
+}
+
+*::-webkit-scrollbar-track {
+  background: #111827 !important;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: #4b5563 !important;
+  border-radius: 3px !important;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: #6b7280 !important;
+}
+
+/* Specific class for chat area */
+.custom-scrollbar {
+  scrollbar-width: thin !important;
+  scrollbar-color: #4b5563 #111827 !important;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px !important;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: #111827 !important;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #4b5563 !important;
+  border-radius: 3px !important;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #6b7280 !important;
+}

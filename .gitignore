@@ -1,0 +1,14 @@
+# Node.js (for reporto-app)
+reporto-app/node_modules
+reporto-app/.next
+reporto-app/out
+reporto-app/.env.local
+
+# Python (for reporto-backend)
+reporto-backend/venv
+reporto-backend/__pycache__
+reporto-backend/.env
+
+# General OS/IDE files
+.vscode
+.DS_Store
