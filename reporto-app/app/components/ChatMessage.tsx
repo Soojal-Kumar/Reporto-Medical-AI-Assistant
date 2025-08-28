@@ -1,6 +1,7 @@
 // app/components/ChatMessage.tsx
 import { Bot, User } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
+// CHANGE: Removed the failing import for CodeProps. We don't need it.
 
 type ChatMessageProps = {
   role: 'user' | 'assistant';
@@ -15,7 +16,8 @@ export function ChatMessage({ role, content, isStreaming = false }: ChatMessageP
     <div className={`w-full py-6 px-4 md:px-6 border-b border-gray-800/30 ${
       isUser ? 'bg-transparent' : 'bg-gray-900/20'
     }`}>
-<div className={`max-w-4xl mx-auto flex items-start gap-4 ${isUser ? 'flex-row-reverse justify-end' : ''}`}>        <div className={`w-8 h-8 flex-shrink-0 flex items-center justify-center rounded-full ${
+      <div className={`max-w-4xl mx-auto flex items-start gap-4 ${isUser ? 'flex-row-reverse justify-end' : ''}`}>
+        <div className={`w-8 h-8 flex-shrink-0 flex items-center justify-center rounded-full ${
           isUser ? 'bg-orange-500' : 'bg-gray-700'
         }`}>
           {isUser ? (
@@ -25,19 +27,16 @@ export function ChatMessage({ role, content, isStreaming = false }: ChatMessageP
           )}
         </div>
         
-        {/* CONTENT */}
         {isUser ? (
-          // --- User's Message: Clean text with subtle styling ---
           <div className="flex-1">
             <p className="text-white text-base leading-relaxed">{content}</p>
           </div>
         ) : (
-          // --- AI's Message: Better formatted with streaming cursor ---
           <div className="flex-1">
             <div className="prose prose-invert max-w-none text-gray-100 text-sm">
               <ReactMarkdown
                 components={{
-                  // Better styling for markdown elements with smaller font sizes
+                  // These components are fine
                   h1: ({node: _node, ...props}) => <h1 className="text-lg font-bold mb-3 text-white" {...props} />,
                   h2: ({node: _node, ...props}) => <h2 className="text-base font-semibold mb-2 text-white" {...props} />,
                   h3: ({node: _node, ...props}) => <h3 className="text-sm font-semibold mb-2 text-white" {...props} />,
@@ -49,12 +48,20 @@ export function ChatMessage({ role, content, isStreaming = false }: ChatMessageP
                   blockquote: ({node: _node, ...props}) => (
                     <blockquote className="border-l-4 border-orange-500 pl-4 italic text-gray-400 mb-3 text-sm" {...props} />
                   ),
-                  code: ({node: _node, inline, ...props}) => 
-                    inline ? (
-                      <code className="bg-gray-800 px-1.5 py-0.5 rounded text-orange-300 text-xs" {...props} />
+
+                  // CHANGE: Explicitly typed the props for the 'code' component right here.
+                  // This is the correct way for react-markdown v9+.
+                  code({ node: _node, inline, className, children, ...props }) {
+                    return !inline ? (
+                      <code className="block bg-gray-800 p-3 rounded-lg text-orange-300 text-xs overflow-x-auto" {...props}>
+                        {children}
+                      </code>
                     ) : (
-                      <code className="block bg-gray-800 p-3 rounded-lg text-orange-300 text-xs overflow-x-auto" {...props} />
-                    ),
+                      <code className="bg-gray-800 px-1.5 py-0.5 rounded text-orange-300 text-xs" {...props}>
+                        {children}
+                      </code>
+                    );
+                  }
                 }}
               >
                 {content}

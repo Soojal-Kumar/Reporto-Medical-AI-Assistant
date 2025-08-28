@@ -3,23 +3,22 @@
 
 import { auth } from "@/firebase/config";
 import { GoogleAuthProvider, signInWithPopup } from "firebase/auth";
-import { useRouter } from "next/navigation";
+// No longer need to import useRouter here
+// import { useRouter } from "next/navigation";
 
 export default function LoginPage() {
-  const router = useRouter();
+  // The router variable is not needed here, so we remove it.
+  // const router = useRouter();
 
   const handleSignInWithGoogle = async () => {
     const provider = new GoogleAuthProvider();
     try {
       await signInWithPopup(auth, provider);
-      // The onAuthStateChanged listener will handle the redirect
+      // The onAuthStateChanged listener in LayoutProvider will handle the redirect
     } catch (error) {
       console.error("Error signing in with Google: ", error);
     }
   };
-  
-  // We will add a listener in LayoutProvider that redirects
-  // the user to the main page ('/') upon successful login.
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-black">
