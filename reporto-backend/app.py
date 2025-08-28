@@ -1,7 +1,3 @@
----
-title: Reporto Backend
-sdk: fastapi
----
 # reporto-backend/main.py
 import os
 import io
